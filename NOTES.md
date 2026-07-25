@@ -41,15 +41,24 @@ Pick the Catppuccin Mocha GTK theme and Papirus-Dark icon theme there.
 Official theming reference if you want to go deeper (fonts, Qt style):
 https://docs.noctalia.dev/v4/theming/program-specific/gtk-qt/
 
-## 3. Fingerprint chip lottery
+## 3. Fingerprint: confirmed unsupported by mainline fprintd
 
-`setup.sh` runs `fprintd-enroll` (as your user, not root — root enrollment
-is a common mistake and silently enrolls the wrong account) and wires up
-PAM automatically. If it reports no device or enrollment fails, check the
-`lsusb` output the script prints against the vendor table it shows —
-Synaptics sensors (`06cb`) need `python-validity` instead of plain
-`fprintd`, not currently in `setup.sh` since it's a different stack
-entirely and chip-dependent.
+Chip identified: **EgisTec/LighTuning EH575** (USB `1c7a:0575`). This is
+**not supported by mainline libfprint**, so `fprintd-enroll` reporting "no
+device" isn't a config problem — `setup.sh` now detects vendor `1c7a` and
+skips the attempt entirely instead of failing pointlessly.
+
+Community options exist, unverified:
+- AUR `open-fprintd-eh575` — conflicts with plain `fprintd`, python +
+  opencv based, isolated `/opt` install. Read the PKGBUILD/comments before
+  trusting it for login/sudo auth.
+- https://github.com/Animeshz/EgisTec-EH575 — the reverse-engineering
+  effort this chip's support is based on; last documented as still WIP
+  against libfprint, not a turnkey package.
+
+Not wired into `setup.sh` automatically — this is a "does it actually work
+reliably enough to gate sudo on" judgment call, not something to script
+blindly.
 
 ## 4. Confirm your NVIDIA bus setup
 

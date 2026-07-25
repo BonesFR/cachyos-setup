@@ -111,23 +111,38 @@ echo "  Sensor check (compare against lsusb):"
 echo "    Goodix    -> vendor 27c6"
 echo "    Synaptics -> vendor 06cb (needs python-validity instead of fprintd — different driver stack)"
 echo "    ELAN      -> vendor 04f3"
-lsusb | grep -iE "27c6|06cb|04f3|fingerprint|goodix|synaptics|elan" || echo "    (no obviously-matching device seen in lsusb — enrollment may fail below)"
-echo "  Enrolling right finger index on your own account (follow the prompts)..."
-if fprintd-enroll; then
-  add_fprintd_pam() {
-    local file="$1"
-    if ! grep -q "pam_fprintd.so" "$file"; then
-      sudo sed -i '0,/^auth/s//auth       sufficient   pam_fprintd.so\nauth/' "$file"
-      echo "  added pam_fprintd.so to $file"
-    else
-      echo "  $file already has pam_fprintd.so, skipping"
-    fi
-  }
-  add_fprintd_pam /etc/pam.d/sudo
-  add_fprintd_pam /etc/pam.d/login
+echo "    EgisTec/LighTuning -> vendor 1c7a (this laptop's chip, confirmed EH575/1c7a:0575 —"
+echo "                          NOT supported by mainline libfprint/fprintd at all; skipping"
+echo "                          fprintd-enroll below, it will only ever report 'no device'.)"
+if lsusb | grep -qi "1c7a"; then
+  echo "  EgisTec sensor detected — mainline fprintd cannot see this chip, so skipping"
+  echo "  fprintd-enroll (it would just fail). Community driver efforts exist but are"
+  echo "  unverified/experimental as of this writing:"
+  echo "    - AUR: open-fprintd-eh575 (conflicts with plain fprintd, isolated /opt install,"
+  echo "      python+opencv-based — read its PKGBUILD/comments before trusting it with login auth)"
+  echo "    - https://github.com/Animeshz/EgisTec-EH575 (driver reverse-engineering effort,"
+  echo "      last documented as still WIP against libfprint, not a drop-in package)"
+  echo "  Not attempting either automatically — this is a 'does it work at all' judgment call,"
+  echo "  not something safe to script blindly for something PAM-facing."
 else
-  echo "  fprintd-enroll failed — check the sensor table above, this chip may need"
-  echo "  a different driver (e.g. python-validity for Synaptics 06cb) instead of fprintd."
+  lsusb | grep -iE "27c6|06cb|04f3|fingerprint|goodix|synaptics|elan" || echo "    (no obviously-matching device seen in lsusb — enrollment may fail below)"
+  echo "  Enrolling right finger index on your own account (follow the prompts)..."
+  if fprintd-enroll; then
+    add_fprintd_pam() {
+      local file="$1"
+      if ! grep -q "pam_fprintd.so" "$file"; then
+        sudo sed -i '0,/^auth/s//auth       sufficient   pam_fprintd.so\nauth/' "$file"
+        echo "  added pam_fprintd.so to $file"
+      else
+        echo "  $file already has pam_fprintd.so, skipping"
+      fi
+    }
+    add_fprintd_pam /etc/pam.d/sudo
+    add_fprintd_pam /etc/pam.d/login
+  else
+    echo "  fprintd-enroll failed — check the sensor table above, this chip may need"
+    echo "  a different driver instead of fprintd."
+  fi
 fi
 
 echo ""

@@ -77,16 +77,21 @@ tried and rejected) across sessions.
   - `prime-run <command>` is bundled by CachyOS by default for launching
     specific apps on the dGPU.
 - **Display**: 1920x1080 (Full HD panel)
-- **Fingerprint sensor**: chip unknown — check `lsusb` before assuming
-  which driver stack is needed (Goodix/Synaptics "Prometheus"/ELAN all
-  behave differently; Synaptics needs `python-validity`, not plain fprintd).
-  `setup.sh` prints the vendor-ID table and greps `lsusb` automatically.
+- **Fingerprint sensor**: confirmed (2026-07-25) **EgisTec/LighTuning
+  EH575**, USB ID `1c7a:0575`. **Not supported by mainline
+  libfprint/fprintd at all** — `fprintd-enroll` reporting "no device" is
+  expected behavior on this exact chip, not a setup bug. `setup.sh`
+  detects vendor `1c7a` via `lsusb` and skips the fprintd attempt
+  entirely rather than failing pointlessly. Community-driver options
+  (AUR `open-fprintd-eh575`, or github.com/Animeshz/EgisTec-EH575)
+  exist but are unverified/experimental — don't wire them into `setup.sh`
+  automatically without the person explicitly deciding to gate sudo/login
+  auth on an experimental driver; see NOTES.md #3.
   **Known bug already hit once**: NOTES.md previously said
   `sudo fprintd-enroll` — that enrolls a fingerprint for the *root*
   account, not the user's own login, so nothing the user's session or
   sudo prompt checks against ever matches. Always run plain
-  `fprintd-enroll` (no sudo) as the user being enrolled; `setup.sh` now
-  does this.
+  `fprintd-enroll` (no sudo) as the user being enrolled.
 - **Power/GPU-switching tooling**: explicitly declined (2026-07-25) despite
   being a hybrid-NVIDIA laptop ahead of international travel — don't
   re-suggest `envycontrol`/`power-profiles-daemon` unless the person
