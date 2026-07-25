@@ -1,9 +1,7 @@
 -- Based on CachyOS/cachyos-hypr-noctalia's default etc/skel/.config/hypr/config/variables.lua.
--- Only change: TERMINAL kitty -> ghostty.
 
 -- Hyprland default apps
 
-TERMINAL     = "ghostty"
 FILE_MANAGER = "dolphin"
 BROWSER      = "firefox"
 EDITOR       = "gnome-text-editor --new-window"
