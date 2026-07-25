@@ -24,7 +24,7 @@ paru -S --needed noctalia-shell accountsservice
 echo "== CLI toolstack (carried over from the whole earlier conversation) =="
 paru -S --needed \
   eza zoxide fastfetch atuin bat ripgrep fzf dust bottom procs \
-  git-delta tokei hyperfine just ghostty fish starship \
+  git-delta tokei hyperfine just ghostty kitty fish starship \
   wl-clipboard cliphist swww
 
 echo "== Launcher, file manager, fingerprint =="
@@ -94,6 +94,21 @@ if paru -Qq hypridle &>/dev/null; then
   copy_config "$REPO_DIR/hypridle.conf" "$HOME/.config/hypr/hypridle.conf"
 else
   echo "  hypridle not installed, skipping hypridle.conf (paru -S hypridle if you want auto-lock)"
+fi
+
+echo "== hyprbars plugin (real draggable titlebars) =="
+# Plugin compilation against the exact installed Hyprland version is inherently
+# fragile (ABI mismatch is the #1 failure mode) — guarded so a failure here
+# doesn't take down the rest of setup.sh via `set -e`. If it fails, the
+# hl.config/hl.plugin.hyprbars calls in windowrules.lua are simply inert.
+paru -S --needed hyprland-headers || echo "  hyprland-headers install failed, hyprpm build below may fail too"
+if hyprpm add https://github.com/hyprwm/hyprland-plugins 2>&1 | tee /tmp/hyprpm-add.log && hyprpm enable hyprbars; then
+  echo "  hyprbars enabled"
+else
+  echo "  hyprbars install/enable failed (see /tmp/hyprpm-add.log) — titlebars won't"
+  echo "  show up, but nothing else in this script depends on it. Common cause:"
+  echo "  hyprland-headers version not matching the installed hyprland exactly;"
+  echo "  try 'hyprpm update' then retry 'hyprpm enable hyprbars' manually."
 fi
 
 echo "== Vicinae server (systemd user service, not exec-once) =="

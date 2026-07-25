@@ -8,6 +8,26 @@
 --
 -- Window rules wiki https://wiki.hypr.land/Configuring/Basics/Window-Rules/
 
+-- Magnetic edge/window snapping while dragging floating windows (added). This is
+-- NOT Windows' Aero Snap (drag-to-edge auto-resize-to-half) — Hyprland has no
+-- built-in equivalent to that, it would need a plugin or dedicated keybinds. This
+-- is the smaller, honest version: windows snap into alignment when dragged near
+-- a screen edge or another window's edge.
+hl.config({ general = { snap = { enabled = true } } })
+
+-- hyprbars (official plugin, github.com/hyprwm/hyprland-plugins): real
+-- server-side titlebars — draggable directly (no SUPER needed), with a close
+-- button. Lives here rather than a new config/hyprbars.lua + hyprland.lua edit
+-- since it's one small block and avoids forking hyprland.lua's require() list
+-- just for this. Installed/enabled via `hyprpm` in setup.sh — if that failed on
+-- your machine, this block is simply inert (unknown plugin config keys are
+-- ignored, not a hard error) until the plugin is actually loaded.
+hl.config({ plugin = { hyprbars = {
+    bar_height = 28,
+    on_double_click = "hyprctl dispatch fullscreen 1",
+} } })
+hl.plugin.hyprbars.add_button({ bg_color = "rgba(0,0,0,0)", fg_color = "rgb(cba6f7)", size = 20, icon = "X", action = "hyprctl dispatch killactive" })
+
 -- Floating by default (added — see note above)
 hl.window_rule({ match = { class = ".*" }, float = true })
 

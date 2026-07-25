@@ -26,8 +26,11 @@ hl.bind(mainMod .. " + Left",  hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + Right", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + Up",    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + Down",  hl.dsp.focus({ direction = "down" }))
-hl.bind("ALT + Tab",           hl.dsp.window.cycle_next())
-hl.bind(mainMod .. " + Tab",   hl.dsp.exec_cmd(noctCall .. "window-switcher"))
+-- ALT+Tab -> Noctalia's visual window switcher (matches Windows muscle memory);
+-- SUPER+Tab -> bare next-window cycle (upstream had these swapped, which meant
+-- ALT+Tab did a silent no-overlay cycle instead of the switcher UI).
+hl.bind("ALT + Tab",           hl.dsp.exec_cmd(noctCall .. "window-switcher"))
+hl.bind(mainMod .. " + Tab",   hl.dsp.window.cycle_next())
 
 -- Move active window around workspaces & monitors
 hl.bind(mainMod .. " + SHIFT + Up",                   hl.dsp.window.move({ direction = "u" }))
@@ -89,6 +92,22 @@ hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd(noctCall .. "media previous"), { locke
 -- Brightness
 hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd(noctCall .. "brightness-up"),   { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(noctCall .. "brightness-down"), { locked = true, repeating = true })
+
+-----------------------------------
+---- WINDOWS-STYLE SNAP (added) ----
+-----------------------------------
+-- SUPER+Arrow is already directional focus-switching (upstream, kept as-is) so
+-- true Win+Arrow isn't free — using SUPER+ALT+Arrow instead. Confirmed dispatcher
+-- syntax: `resizeactive/moveactive exact <w> <h>` accepts percentages of the
+-- screen (wiki.hypr.land/Configuring/Dispatchers). This is keyboard-triggered
+-- positioning, NOT drag-to-edge auto-snap — Hyprland has no built-in or plugin
+-- equivalent of Windows' actual Snap Assist (detecting a drag reaching a screen
+-- edge and previewing a snap zone), that would require writing a compositor
+-- plugin from scratch, out of scope here.
+hl.bind(mainMod .. " + ALT + Left",  hl.dsp.exec_cmd([[hyprctl --batch "dispatch resizeactive exact 50% 100% ; dispatch moveactive exact 0 0"]]))
+hl.bind(mainMod .. " + ALT + Right", hl.dsp.exec_cmd([[hyprctl --batch "dispatch resizeactive exact 50% 100% ; dispatch moveactive exact 50% 0"]]))
+hl.bind(mainMod .. " + ALT + Up",    hl.dsp.exec_cmd([[hyprctl --batch "dispatch resizeactive exact 100% 100% ; dispatch moveactive exact 0 0"]]))
+hl.bind(mainMod .. " + ALT + Down",  hl.dsp.exec_cmd([[hyprctl --batch "dispatch resizeactive exact 60% 60% ; dispatch centerwindow"]]))
 
 -------------------
 ---- UTILITIES ----

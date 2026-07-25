@@ -183,7 +183,8 @@ Windows-side dual-boot fixes already applied: Fast Startup disabled,
   Noctalia CLI IPC syntax; an earlier note here had the older
   `qs -c noctalia-shell ipc call lockScreen lock` form, which was never
   actually verified against a live Noctalia install).
-- `SUPER+T` opens the terminal (Ghostty), alongside `SUPER+Return` —
+- `SUPER+T` opens the terminal (kitty, per `TERMINAL` in `variables.lua`),
+  alongside `SUPER+Return` —
   upstream default binds `SUPER+T` to the EDITOR instead, overridden in
   `config/binds.lua`. Floating toggle is `SUPER+ALT+Space` (upstream
   default, left alone) — `SUPER+V` and `SUPER+T` are both already claimed
@@ -191,6 +192,26 @@ Windows-side dual-boot fixes already applied: Fast Startup disabled,
   else without checking `config/binds.lua` first.
 - Numlock on at startup: `numlock_by_default = true` in
   `config/inputs.lua`.
+- **Floating UX gap acknowledged (2026-07-25)**: Hyprland's floating mode is a
+  modifier-driven WM convention (SUPER+drag to move), not a Windows/KDE
+  clone — no titlebar, no drag-to-edge Snap Assist, ALT+Tab was upstream-bound
+  to a bare no-overlay cycle instead of a visual switcher. Addressed:
+  - `ALT+Tab` now opens Noctalia's visual window-switcher (upstream had this
+    swapped with `SUPER+Tab`, which now does the bare cycle instead).
+  - `general.snap.enabled = true` (`windowrules.lua`) — magnetic edge/window
+    snapping while dragging. This is NOT Aero Snap (drag-to-edge auto-resize).
+  - `SUPER+ALT+Left/Right/Up/Down` — keyboard half/quarter/maximize/restore
+    snapping via `resizeactive`/`moveactive exact <w>% <h>%` dispatchers.
+    Not `SUPER+Arrow` (that's already directional focus-switching upstream,
+    kept as-is) — don't relitigate this collision, it was deliberate.
+  - `hyprbars` plugin (official, hyprwm/hyprland-plugins) added for real
+    draggable server-side titlebars + close button, installed via `hyprpm`
+    in `setup.sh` (guarded — plugin ABI mismatches are a known common
+    failure mode, doesn't block the rest of the script if it fails).
+  - **True drag-to-edge Snap Assist has no Hyprland equivalent, plugin or
+    otherwise** — this would require writing compositor-level drag-event
+    tooling from scratch. Don't imply it's achievable with a quick config
+    tweak if asked again; it isn't.
 - Screenshots/screen recording: **Spectacle** (KDE, works fine outside
   Plasma over the existing xdg-desktop-portal-hyprland + PipeWire stack).
   Chosen explicitly over hyprshot/grimblast because recording was wanted
@@ -220,10 +241,22 @@ require VBS to launch at all now.
   `config/windowrules.lua` with one addition: blanket float-by-default
   rule at the top (upstream default is tiling-by-default with per-app
   float exceptions)
-- `hypr-config/variables.lua` — full copy of upstream `config/variables.lua`
-  with one change: `TERMINAL` kitty -> ghostty
+- `hypr-config/variables.lua` — full copy of upstream `config/variables.lua`.
+  `TERMINAL` was briefly changed to ghostty then reverted back to
+  upstream's `kitty` (2026-07-25, person's explicit choice) — `kitty` is
+  now in `setup.sh`'s package list alongside `ghostty` (kept installed,
+  just not the default). **Never let `TERMINAL` end up undefined** —
+  `binds.lua` concatenates it unconditionally on the first launcher bind,
+  and a nil value throws a Lua error that silently kills every bind
+  declared after it in that file (this exact bug happened once already).
 - `hypr-config/uwsm-env` — full copy of upstream `~/.config/uwsm/env` with
-  NVIDIA vars uncommented and fcitx5 IM vars added
+  NVIDIA vars uncommented and fcitx5 IM vars added. **`GTK_IM_MODULE` is
+  deliberately NOT set** (2026-07-25) — on native Wayland, GTK3/4 talk to
+  fcitx5 directly over the Wayland input-method protocol, and setting the
+  old X11-style module produces fcitx5's own "Wayland diagnose" warning
+  and breaks it. `QT_IM_MODULE`/`XMODIFIERS`/`SDL_IM_MODULE` are still
+  set (Qt5/XWayland/SDL2 still need them). Don't re-add `GTK_IM_MODULE`
+  without a specific reason.
 - `hypridle.conf` — optional auto-lock on idle via Noctalia's lock IPC
   (unaffected by the Lua migration — hypridle is a separate daemon still
   using the classic `.conf` format)

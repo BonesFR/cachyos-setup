@@ -6,6 +6,7 @@
 # way, so systemd --user services (like vicinae.service) see these too.
 
 export BROWSER=firefox
+export TERM=xterm-kitty
 export QT_QPA_PLATFORM="wayland;xcb"
 export QT_QPA_PLATFORMTHEME="qt6ct"
 export ELECTRON_OZONE_PLATFORM_HINT=auto
@@ -22,9 +23,12 @@ export LIBVA_DRIVER_NAME=nvidia
 export NVD_BACKEND=direct
 export WLR_NO_HARDWARE_CURSORS=1
 
-# fcitx5 input method (Korea prep) — without these the layout toggle changes the
-# xkb layout but fcitx5-hangul never actually gets input focus in GTK/Qt apps.
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-export XMODIFIERS=@im=fcitx
-export SDL_IM_MODULE=fcitx
+# fcitx5 input method (Korea prep).
+# GTK_IM_MODULE deliberately NOT set: on native Wayland, GTK3/4 apps talk to
+# fcitx5 directly over the Wayland input-method protocol, and forcing the old
+# X11-style module conflicts with that (this is literally what fcitx5's own
+# "Wayland diagnose" warning was reporting — confirmed via fcitx-im.org's own
+# Wayland setup docs, not a guess).
+export QT_IM_MODULE=fcitx      # Qt on Wayland still benefits from this for Qt5 apps
+export XMODIFIERS=@im=fcitx    # for XWayland / legacy X11 apps only
+export SDL_IM_MODULE=fcitx     # for SDL2 apps not defaulting to Wayland

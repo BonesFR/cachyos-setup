@@ -93,6 +93,20 @@ Not wired into `setup.sh` automatically — this is a "does it actually work
 reliably enough to gate sudo on" judgment call, not something to script
 blindly.
 
+## 3b. hyprbars titlebar plugin — verify it actually loaded
+
+`setup.sh` runs `hyprpm add ... && hyprpm enable hyprbars`, guarded so a
+build failure doesn't abort the rest of the script (plugin ABI mismatches
+against the exact installed Hyprland version are the most common failure
+mode for any Hyprland plugin). Check it actually worked:
+```sh
+hyprctl plugins list
+```
+If `hyprbars` isn't listed, try `hyprpm update` then `hyprpm enable
+hyprbars` manually — the `hl.config`/`hl.plugin.hyprbars` calls in
+`windowrules.lua` are inert (not an error) if the plugin never loaded, so
+this fails silently from the config's point of view.
+
 ## 4. Confirm your NVIDIA bus setup
 
 Hyprland now auto-detects the monitor, so that manual step is gone. Only
