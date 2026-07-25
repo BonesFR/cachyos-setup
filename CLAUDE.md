@@ -208,6 +208,17 @@ Windows-side dual-boot fixes already applied: Fast Startup disabled,
     draggable server-side titlebars + close button, installed via `hyprpm`
     in `setup.sh` (guarded — plugin ABI mismatches are a known common
     failure mode, doesn't block the rest of the script if it fails).
+    **The `hyprbars` build failed on this machine** (2026-07-25) —
+    `hl.plugin.hyprbars` was nil, and the original `windowrules.lua`
+    called `.add_button` on it unconditionally, which is a hard Lua
+    error that aborted the rest of that file's execution (floating-by-
+    default, snap, gaming/dialog rules — all of it, silently). Same bug
+    class as the `TERMINAL` crash below: **never call into an optional/
+    plugin-provided API without checking it exists first**
+    (`if hl.plugin and hl.plugin.hyprbars then ... end`), now guarded.
+    Titlebars still don't actually work until `hyprpm enable hyprbars`
+    succeeds on that machine — check `/tmp/hyprpm-add.log` for why it
+    failed (headers version mismatch is the top suspect).
   - **True drag-to-edge Snap Assist has no Hyprland equivalent, plugin or
     otherwise** — this would require writing compositor-level drag-event
     tooling from scratch. Don't imply it's achievable with a quick config
