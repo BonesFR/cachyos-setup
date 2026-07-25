@@ -75,13 +75,35 @@ copy_config() {
   cp "$src" "$dest"
   echo "  installed $dest"
 }
-copy_config "$REPO_DIR/hyprland.conf" "$HOME/.config/hypr/hyprland.conf"
+# NOT hyprland.conf: Hyprland 0.55+ prefers hyprland.lua over hyprland.conf if the
+# .lua file exists at all, checked once at startup, no merging of the two. The
+# noctalia-shell package's own /etc/skel already deploys a full hyprland.lua +
+# ~/.config/hypr/config/*.lua structure (CachyOS/cachyos-hypr-noctalia upstream) —
+# fighting that by writing a flat hyprland.conf would just be silently ignored
+# (this is exactly what happened for a while: every conf edit was inert, zero
+# errors, because Hyprland was reading its own generated Lua config the whole
+# time). Overriding the specific upstream Lua modules instead, same idea as
+# working with SDDM instead of against it.
+copy_config "$REPO_DIR/hypr-config/inputs.lua" "$HOME/.config/hypr/config/inputs.lua"
+copy_config "$REPO_DIR/hypr-config/binds.lua" "$HOME/.config/hypr/config/binds.lua"
+copy_config "$REPO_DIR/hypr-config/windowrules.lua" "$HOME/.config/hypr/config/windowrules.lua"
+copy_config "$REPO_DIR/hypr-config/variables.lua" "$HOME/.config/hypr/config/variables.lua"
+copy_config "$REPO_DIR/hypr-config/uwsm-env" "$HOME/.config/uwsm/env"
 copy_config "$REPO_DIR/config.fish" "$HOME/.config/fish/config.fish"
 if paru -Qq hypridle &>/dev/null; then
   copy_config "$REPO_DIR/hypridle.conf" "$HOME/.config/hypr/hypridle.conf"
 else
   echo "  hypridle not installed, skipping hypridle.conf (paru -S hypridle if you want auto-lock)"
 fi
+
+echo "== Vicinae server (systemd user service, not exec-once) =="
+# The AUR package ships its own vicinae.service user unit. Using it instead of an
+# exec-once line (which would live in hyprland.lua's autostart.lua module) matches
+# upstream's own recommendation for uwsm-managed sessions, and works fine on the
+# plain "Hyprland" session entry too since CachyOS's autostart.lua already runs
+# `dbus-update-activation-environment --systemd --all` on every session start,
+# which is what lets systemd --user services see the graphical session either way.
+systemctl --user enable --now vicinae.service
 
 echo "== SDDM greeter (Catppuccin Mocha via SilentSDDM) =="
 # Went with SDDM over noctalia-greeter: CachyOS's installer already enables
@@ -163,4 +185,9 @@ echo ""
 echo "2. GTK theme selection: run 'nwg-look' once and pick the Catppuccin"
 echo "   Mocha GTK theme + Papirus (Catppuccin folders) icon theme that were"
 echo "   just installed — this is a one-time GUI picker, not scriptable."
+echo ""
+echo "IMPORTANT: fully log out and back in (not just 'hyprctl reload') for this"
+echo "to take effect — ~/.config/uwsm/env is only read at session start, not on"
+echo "reload. Config changes (keybinds, layout, floating) DO hot-reload; env vars"
+echo "(NVIDIA, fcitx5, cursor) do not."
 echo "================================================================"

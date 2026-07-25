@@ -1,0 +1,31 @@
+# Based on CachyOS/cachyos-hypr-noctalia's default etc/skel/.config/uwsm/env.
+# Deploys to ~/.config/uwsm/env. Read by uwsm before Hyprland starts, so this is
+# where NVIDIA/IM env vars belong regardless of which SDDM session entry is used
+# ("Hyprland" or "Hyprland (uwsm managed)") — CachyOS's own autostart.lua runs
+# `dbus-update-activation-environment --systemd --all` on every session start either
+# way, so systemd --user services (like vicinae.service) see these too.
+
+export BROWSER=firefox
+export TERM=xterm-ghostty
+export QT_QPA_PLATFORM="wayland;xcb"
+export QT_QPA_PLATFORMTHEME="qt6ct"
+export ELECTRON_OZONE_PLATFORM_HINT=auto
+export HYPRCURSOR_THEME="Bibata-Modern-Ice"
+export HYPRCURSOR_SIZE=24
+export XCURSOR_THEME="Bibata-Modern-Ice"
+export XCURSOR_SIZE=24
+
+# NVIDIA Optimus — this laptop's recurring pain point, uncommented (upstream ships
+# these commented out by default).
+export GBM_BACKEND=nvidia-drm
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export LIBVA_DRIVER_NAME=nvidia
+export NVD_BACKEND=direct
+export WLR_NO_HARDWARE_CURSORS=1
+
+# fcitx5 input method (Korea prep) — without these the layout toggle changes the
+# xkb layout but fcitx5-hangul never actually gets input focus in GTK/Qt apps.
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS=@im=fcitx
+export SDL_IM_MODULE=fcitx

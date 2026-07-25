@@ -12,9 +12,36 @@ tried and rejected) across sessions.
   brand-new Wayland shell simultaneously was too much friction at once.
   Don't suggest going back to Nix/flakes/home-manager unless explicitly asked.
 - **Compositor**: Hyprland, configured **floating-by-default**
-  (`windowrulev2 = float, class:.*`). The person specifically wants
-  Windows/KDE-style floating window management, not tiling. niri was tried
-  first and rejected for this reason (niri's tiling isn't optional).
+  (`hl.window_rule({ match = { class = ".*" }, float = true })` in
+  `config/windowrules.lua` — see the Lua-config section below, this used
+  to be `windowrulev2 = float, class:.*` in a flat `hyprland.conf` that no
+  longer exists). The person specifically wants Windows/KDE-style floating
+  window management, not tiling. niri was tried first and rejected for
+  this reason (niri's tiling isn't optional).
+- **⚠️ Hyprland config format: Lua, not `hyprland.conf`** (discovered
+  2026-07-25 after a very long debugging session). Hyprland 0.55+ checks
+  *once* at startup: if `~/.config/hypr/hyprland.lua` exists, it's used
+  exclusively — no merge with `hyprland.conf`, no error if a
+  `hyprland.conf` sits there unused. `noctalia-shell`'s package
+  auto-deploys a full Lua config (`hyprland.lua` requiring
+  `~/.config/hypr/config/{animations,autostart,binds,colors,decorations,
+  environment,inputs,misc,monitors,variables,windowrules,workspaces}.lua`)
+  via `/etc/skel`, upstream: github.com/CachyOS/cachyos-hypr-noctalia.
+  **This repo no longer ships a `hyprland.conf` at all** — it ships
+  `hypr-config/{inputs,binds,windowrules,variables}.lua` +
+  `hypr-config/uwsm-env`, each a copy of the real upstream CachyOS file
+  with only the specific lines changed (see "Files in this repo" below).
+  If CachyOS updates its upstream defaults, diff against the real repo
+  before assuming these are stale.
+  **Corollary that cost hours**: don't trust "the file content is
+  correct and `hyprctl configerrors` shows nothing" as proof a Hyprland
+  config change is live — always confirm with `hyprctl getoption` for a
+  specific value, and check `ls ~/.config/hypr/` for a `hyprland.lua`
+  before assuming `hyprland.conf` is even being read at all.
+  **Also**: `~/.config/uwsm/env` is read once at session start, not on
+  `hyprctl reload` — a full logout/login is required to test env var
+  changes (NVIDIA, fcitx5, cursor), reload only applies for config/*.lua
+  keybind/layout/windowrule changes.
 - **Shell/bar**: Noctalia (Quickshell-based). **Caelestia was seriously
   considered and rejected** — it's officially Hyprland-only, and the
   unofficial niri fork had no Nix/Arch packaging and an abandoned upstream.
@@ -46,13 +73,19 @@ tried and rejected) across sessions.
     the intended greeter again, but if greetd ever comes back for some
     reason, remember to disable SDDM first.
 - **Launcher**: Vicinae (Raycast port, AUR: `vicinae-bin`) is the *primary*
-  launcher, bound to `SUPER+Space`. Noctalia's own launcher is bound to
-  `SUPER+A` as a secondary/backup, not the main one. Vicinae is
-  client/server — confirmed via docs.vicinae.com/quickstart/hyprland that
-  `exec-once = vicinae server` (not bare `vicinae`) plus
-  `bind = SUPER, SPACE, exec, vicinae toggle` is the correct pair. Running
-  the bare binary in exec-once (an earlier bug) never started the server,
-  so the toggle bind silently did nothing.
+  launcher, bound to `SUPER+Space` in `config/binds.lua`. **CachyOS's own
+  upstream default binds that exact combo to Noctalia's own launcher panel**
+  (`noctalia msg panel-toggle launcher`) — our `binds.lua` overrides that
+  one line to `vicinae toggle` instead. `SUPER+A` is notifications/control-
+  center in the upstream default, not a launcher at all (corrects an
+  earlier wrong assumption here). Vicinae is client/server, started as a
+  systemd user service (`systemctl --user enable --now vicinae.service`,
+  the AUR package ships the unit) rather than an exec-once line — matches
+  upstream's own recommendation for uwsm-managed sessions
+  (docs.vicinae.com/quickstart/hyprland), and works on the plain
+  "Hyprland" session entry too since `autostart.lua` runs
+  `dbus-update-activation-environment --systemd --all` on every session
+  start either way.
 - **Shell**: fish, with fisher as plugin manager (fzf-fish, done plugins).
 - **Theme**: Catppuccin Mocha. Default niri/Hyprland focus-ring blue was
   explicitly disliked — use the mauve accent (`#cba6f7`) instead of bright
@@ -64,9 +97,11 @@ tried and rejected) across sessions.
 - **GPU**: Hybrid/Optimus — Intel or AMD CPU + discrete NVIDIA GPU (RTX
   30/40-series range). Person has had recurring NVIDIA driver problems on
   this machine historically — be extra careful here.
-  - Needed env vars for Hyprland: `LIBVA_DRIVER_NAME=nvidia`,
+  - Needed env vars (set in `hypr-config/uwsm-env`, deployed to
+    `~/.config/uwsm/env` — NOT `hyprland.lua`/`environment.lua`, see the
+    Lua-config note above for why): `LIBVA_DRIVER_NAME=nvidia`,
     `__GLX_VENDOR_LIBRARY_NAME=nvidia`, `NVD_BACKEND=direct`,
-    `WLR_NO_HARDWARE_CURSORS=1`
+    `WLR_NO_HARDWARE_CURSORS=1`, `GBM_BACKEND=nvidia-drm`
   - **Known bug already hit once**: Noctalia/Quickshell renders completely
     invisibly (process runs fine, zero errors in logs, nothing draws) on
     this NVIDIA setup unless Qt Quick is forced to software rendering
@@ -97,9 +132,12 @@ tried and rejected) across sessions.
   re-suggest `envycontrol`/`power-profiles-daemon` unless the person
   raises battery life as an actual problem.
 - **Keyboard**: physical layout is **French AZERTY** (person is French,
-  relocating to Korea). Keyboard layout config should be `us,fr,kr` with a
-  toggle (not just `us,kr` — AZERTY going missing entirely was a real bug
-  hit once already).
+  relocating to Korea). `kb_layout = "fr,us,kr"` in `config/inputs.lua`
+  — **fr must be first**, not last: it's the layout active immediately on
+  login, and having "us" first (the original bug) meant physically-AZERTY
+  keys typed QWERTY until manually toggled. Toggle key is Alt+Shift
+  (`kb_options = "grp:alt_shift_toggle"`) — deliberately not Win+Space,
+  which collides with Vicinae's launcher toggle on the same combo.
 
 ## Disk layout (dual boot with Windows)
 
@@ -140,8 +178,19 @@ Windows-side dual-boot fixes already applied: Fast Startup disabled,
   hover," which is what a properly set cursor theme fixes.
 - Wants coherent window decoration — `prefer-no-csd`-equivalent thinking
   applies; avoid mismatched per-app titlebars.
-- Wants `SUPER+L` bound to lock screen — Noctalia's documented IPC command
-  is `qs -c noctalia-shell ipc call lockScreen lock`.
+- Wants `SUPER+L` bound to lock screen — already upstream default in
+  `config/binds.lua`, via `noctalia msg session lock` (the current
+  Noctalia CLI IPC syntax; an earlier note here had the older
+  `qs -c noctalia-shell ipc call lockScreen lock` form, which was never
+  actually verified against a live Noctalia install).
+- `SUPER+T` opens the terminal (Ghostty), alongside `SUPER+Return` —
+  upstream default binds `SUPER+T` to the EDITOR instead, overridden in
+  `config/binds.lua`. Floating toggle is `SUPER+ALT+Space` (upstream
+  default, left alone) — `SUPER+V` and `SUPER+T` are both already claimed
+  by upstream (clipboard panel, editor) so don't reuse them for anything
+  else without checking `config/binds.lua` first.
+- Numlock on at startup: `numlock_by_default = true` in
+  `config/inputs.lua`.
 - Screenshots/screen recording: **Spectacle** (KDE, works fine outside
   Plasma over the existing xdg-desktop-portal-hyprland + PipeWire stack).
   Chosen explicitly over hyprshot/grimblast because recording was wanted
@@ -160,11 +209,25 @@ require VBS to launch at all now.
 ## Files in this repo
 
 - `setup.sh` — all package installs (paru), SDDM setup, config copying,
-  fisher, fingerprint/PAM wiring, theming
-- `hypr/hyprland.conf` — floating-by-default, Noctalia's official
-  appearance block, IPC keybinds, NVIDIA env vars
-- `hypr/hypridle.conf` — optional auto-lock on idle via Noctalia's lock IPC
-- `fish/config.fish` — aliases, abbreviations, atuin flags, clip function
+  fisher, fingerprint/PAM wiring, theming, vicinae.service enable
+- `hypr-config/inputs.lua` — keyboard layout/options, touchpad, numlock;
+  overrides CachyOS upstream `config/inputs.lua`
+- `hypr-config/binds.lua` — full copy of CachyOS upstream `config/binds.lua`
+  with two lines changed (SUPER+Space -> Vicinae, SUPER+T -> terminal);
+  everything else (SUPER+L lock, media keys, workspace binds, etc.) is
+  upstream default, not something this repo invented
+- `hypr-config/windowrules.lua` — full copy of CachyOS upstream
+  `config/windowrules.lua` with one addition: blanket float-by-default
+  rule at the top (upstream default is tiling-by-default with per-app
+  float exceptions)
+- `hypr-config/variables.lua` — full copy of upstream `config/variables.lua`
+  with one change: `TERMINAL` kitty -> ghostty
+- `hypr-config/uwsm-env` — full copy of upstream `~/.config/uwsm/env` with
+  NVIDIA vars uncommented and fcitx5 IM vars added
+- `hypridle.conf` — optional auto-lock on idle via Noctalia's lock IPC
+  (unaffected by the Lua migration — hypridle is a separate daemon still
+  using the classic `.conf` format)
+- `config.fish` — aliases, abbreviations, atuin flags, clip function
 - `NOTES.md` — manual GUI/CLI steps that can't be scripted
 
 ## Known unconfirmed items (verify, don't assume)

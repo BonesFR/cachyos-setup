@@ -7,6 +7,39 @@ Bluetooth/NetworkManager. Two things are left because scripting them
 blindly risks a config that can't boot, or because they're one-time GUI
 choices — safety/judgment calls, not laziness:
 
+## 0. Hyprland uses Lua config now, not `hyprland.conf` — read this first
+
+This repo used to ship a flat `hyprland.conf`. **It's gone.** Hyprland
+0.55+ (0.56.0 confirmed on this machine) checks once at startup: if
+`~/.config/hypr/hyprland.lua` exists, it's used *exclusively* — no
+merging, no fallback to `hyprland.conf`, and critically **no error** if a
+`hyprland.conf` also happens to exist unused right next to it. That cost
+an entire debugging session: every edit to the old `hyprland.conf` was
+silently inert (git-synced correctly, byte-for-byte correct content,
+zero `hyprctl configerrors`) because Hyprland was never reading it at
+all — it was reading CachyOS's own auto-deployed Lua config the whole
+time (`noctalia-shell`'s package ships a full `hyprland.lua` +
+`~/.config/hypr/config/*.lua` structure via `/etc/skel`, upstream:
+github.com/CachyOS/cachyos-hypr-noctalia).
+
+Fix: work with that structure instead of fighting it (same reasoning as
+the SDDM switch). `setup.sh` now deploys `hypr-config/{inputs,binds,
+windowrules,variables}.lua` to `~/.config/hypr/config/` and
+`hypr-config/uwsm-env` to `~/.config/uwsm/env`, each a copy of the
+upstream CachyOS file with only the specific lines this person asked to
+change — diff against the actual upstream files on that GitHub repo if
+CachyOS updates their defaults and this drifts.
+
+**After deploying: fully log out and back in, not just `hyprctl
+reload`.** `~/.config/uwsm/env` (NVIDIA, fcitx5, cursor env vars) is only
+read at session start; config/*.lua changes (keybinds, layout, floating)
+do hot-reload.
+
+Also: the SDDM session list has both a plain **Hyprland** entry and a
+**Hyprland (uwsm managed)** one. Both were tested and both ignore
+`hyprland.conf` identically (this is a Hyprland-level config-loading
+rule, not a uwsm quirk) — either works with the current Lua-based setup.
+
 ## 1. SDDM theme preset (likely one-line config check)
 
 Greeter is **SDDM**, not noctalia-greeter — switched after noctalia-greeter
@@ -73,9 +106,10 @@ lspci | grep -E "VGA|3D"   # confirm both GPUs are detected
 - Dual-boot fixes (Fast Startup, clock skew, no BitLocker) — unchanged
 - AtlasOS + gaming tools on the Windows side — unchanged
 - Limine as bootloader (CachyOS installer offers it directly) — unchanged
-- Korea prep (fonts, fcitx5-hangul, locale) — packages and IM env vars are
-  now both in place (`setup.sh` + `hyprland.conf`); just confirm the
-  toggle key works after first login (kb_options uses Win+Space to cycle
-  us/fr/kr)
+- Korea prep (fonts, fcitx5-hangul, locale) — packages in `setup.sh`, IM
+  env vars in `hypr-config/uwsm-env`; just confirm the toggle key works
+  after first login (`kb_options` in `hypr-config/inputs.lua` uses
+  Alt+Shift to cycle fr/us/kr — not Win+Space, that collides with
+  Vicinae's toggle bind)
 
 None of that was NixOS-specific, so nothing there needs redoing.
