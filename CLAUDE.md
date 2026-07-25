@@ -36,6 +36,34 @@ tried and rejected) across sessions.
     2026 aesthetic trend notes: monochrome/grayscale as a reaction to
     Catppuccin/Nord sameness, and wallpaper-driven Material-You color
     (Matugen/Wallust) over static palettes.
+  - **Wallpaper-driven color pipeline (2026-07-26)**: Noctalia has its own
+    built-in Material-You-style palette generator (not matugen/wallust
+    under the hood) plus a per-app template renderer — Settings -> Color
+    Scheme -> Templates. **Confirmed working**: Hyprland (window border
+    colors — despite an open upstream GitHub issue questioning Lua-config
+    compatibility, it worked cleanly here) and VS Code/Zed/Helix are both
+    built-in toggles, no matugen needed for either. GTK/Qt/most terminals
+    are also covered by this same mechanism. Don't reach for matugen as a
+    parallel pipeline for anything already in Noctalia's template list —
+    check there first.
+  - **Zen Browser theming**: no pre-built wallpaper-dynamic pipeline
+    exists anywhere (checked 2026-07-26) — Zen theming is DIY via
+    `userChrome.css`/`userContent.css` (needs
+    `toolkit.legacyUserProfileCustomizations.stylesheets` in
+    `about:config`), following the pattern in `zen-browser/theme-
+    components` / `catppuccin/zen-browser`. Static Catppuccin Mocha Zen
+    theme is the pragmatic near-term answer (matches the rest of the
+    system already); true wallpaper-reactive Zen theming would be a
+    from-scratch project, not a quick config toggle.
+  - **YouTube Music client wallpaper theming**: checked th-ch/youtube-
+    music (continued as pear-devs/pear-desktop after a rename/fork —
+    has per-*track album-art* color theming via plugin, not wallpaper,
+    plus built-in ad-block), ytmdesktop/ytmdesktop (static custom CSS
+    only), and Echoes (already in use, ad-free, no dynamic theming
+    found). **None of the three support wallpaper/system-palette
+    theming as of this check** — this isn't a gap in the setup, it's a
+    gap in what these clients offer. Don't imply a config fix exists for
+    this if asked again without new information.
 - **⚠️ Hyprland config format: Lua, not `hyprland.conf`** (discovered
   2026-07-25 after a very long debugging session). Hyprland 0.55+ checks
   *once* at startup: if `~/.config/hypr/hyprland.lua` exists, it's used

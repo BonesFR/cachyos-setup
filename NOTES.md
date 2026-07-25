@@ -60,6 +60,18 @@ screen — it should, since the `hyprland` package ships
 `/usr/share/wayland-sessions/hyprland.desktop` itself, but worth a glance
 at `ls /usr/share/wayland-sessions/` if it's missing from the picker.
 
+## 1b. Wallpaper-driven color for Hyprland/apps (one-time GUI toggle)
+
+Noctalia Settings -> Color Scheme -> Templates has per-app toggles that
+render its wallpaper-generated palette into that app's own config format
+automatically, and re-render on every wallpaper change. Confirmed
+working (2026-07-26): **Hyprland** (border colors — despite Hyprland
+being on the new Lua config, Noctalia's template produces something it
+happily picks up) and it also lists **VS Code/Zed/Helix**, GTK3/4, Qt,
+and most of the terminal emulators already installed (Kitty, Ghostty,
+Alacritty, Starship). Turn on whichever of these you actually use — this
+is a GUI toggle per app, not something `setup.sh` can flip for you.
+
 ## 2. GTK theme selection (one-time GUI picker)
 
 `setup.sh` installs `catppuccin-gtk-theme-mocha`, `nwg-look`, and sets the
