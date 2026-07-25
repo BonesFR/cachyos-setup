@@ -11,13 +11,31 @@ tried and rejected) across sessions.
   abandoned.** Debugging NixOS's declarative model *and* NVIDIA *and* a
   brand-new Wayland shell simultaneously was too much friction at once.
   Don't suggest going back to Nix/flakes/home-manager unless explicitly asked.
-- **Compositor**: Hyprland, configured **floating-by-default**
-  (`hl.window_rule({ match = { class = ".*" }, float = true })` in
-  `config/windowrules.lua` — see the Lua-config section below, this used
-  to be `windowrulev2 = float, class:.*` in a flat `hyprland.conf` that no
-  longer exists). The person specifically wants Windows/KDE-style floating
-  window management, not tiling. niri was tried first and rejected for
-  this reason (niri's tiling isn't optional).
+- **Compositor**: Hyprland, **tiling-by-default** (CachyOS upstream
+  default, unmodified — dwindle layout + per-app float exceptions for
+  gaming/dialogs/PiP). **Reversed from floating-by-default on 2026-07-26.**
+  History: the person originally wanted Windows/KDE-style floating (niri
+  was rejected first for this exact reason — "niri's tiling isn't
+  optional"), so Hyprland was configured with a blanket float rule plus
+  the `hyprbars` plugin for real titlebars. After using it, the person
+  concluded that floating-Hyprland still doesn't feel like Windows/KDE
+  (no real window management polish, `hyprbars` plugin failed to build
+  anyway) and explicitly chose to stop chasing that feeling — lean into
+  Hyprland's native tiling + aesthetic "ricing" instead. **Don't
+  re-suggest floating-by-default, `hyprbars`, or Windows-parity snapping
+  unless the person raises it again** — this was a deliberate, considered
+  reversal, not an oversight to "fix."
+  - Current focus: aesthetic customization ("ricing") on top of Hyprland
+    + Noctalia (Quickshell-based, supports live wallpaper-driven theming
+    via Matugen/Wallust-style tooling). Reference dotfiles the person was
+    shown (2026-07-26): end-4/dots-hyprland, JaKooLit/Hyprland-Dots (best
+    documented NVIDIA/hybrid support of the mainstream ones),
+    HyDE-Project/HyDE, mylinuxforwork/dotfiles for mainstream/polished;
+    AdiKsOnDev/Monoland, linuxmobile/hyprland-dots, doccnova/serene-hyprland,
+    zhaleff/AwesomeDotfiles (curated index) for more niche/personal takes.
+    2026 aesthetic trend notes: monochrome/grayscale as a reaction to
+    Catppuccin/Nord sameness, and wallpaper-driven Material-You color
+    (Matugen/Wallust) over static palettes.
 - **⚠️ Hyprland config format: Lua, not `hyprland.conf`** (discovered
   2026-07-25 after a very long debugging session). Hyprland 0.55+ checks
   *once* at startup: if `~/.config/hypr/hyprland.lua` exists, it's used
@@ -192,37 +210,19 @@ Windows-side dual-boot fixes already applied: Fast Startup disabled,
   else without checking `config/binds.lua` first.
 - Numlock on at startup: `numlock_by_default = true` in
   `config/inputs.lua`.
-- **Floating UX gap acknowledged (2026-07-25)**: Hyprland's floating mode is a
-  modifier-driven WM convention (SUPER+drag to move), not a Windows/KDE
-  clone — no titlebar, no drag-to-edge Snap Assist, ALT+Tab was upstream-bound
-  to a bare no-overlay cycle instead of a visual switcher. Addressed:
-  - `ALT+Tab` now opens Noctalia's visual window-switcher (upstream had this
-    swapped with `SUPER+Tab`, which now does the bare cycle instead).
-  - `general.snap.enabled = true` (`windowrules.lua`) — magnetic edge/window
-    snapping while dragging. This is NOT Aero Snap (drag-to-edge auto-resize).
-  - `SUPER+ALT+Left/Right/Up/Down` — keyboard half/quarter/maximize/restore
-    snapping via `resizeactive`/`moveactive exact <w>% <h>%` dispatchers.
-    Not `SUPER+Arrow` (that's already directional focus-switching upstream,
-    kept as-is) — don't relitigate this collision, it was deliberate.
-  - `hyprbars` plugin (official, hyprwm/hyprland-plugins) added for real
-    draggable server-side titlebars + close button, installed via `hyprpm`
-    in `setup.sh` (guarded — plugin ABI mismatches are a known common
-    failure mode, doesn't block the rest of the script if it fails).
-    **The `hyprbars` build failed on this machine** (2026-07-25) —
-    `hl.plugin.hyprbars` was nil, and the original `windowrules.lua`
-    called `.add_button` on it unconditionally, which is a hard Lua
-    error that aborted the rest of that file's execution (floating-by-
-    default, snap, gaming/dialog rules — all of it, silently). Same bug
-    class as the `TERMINAL` crash below: **never call into an optional/
-    plugin-provided API without checking it exists first**
-    (`if hl.plugin and hl.plugin.hyprbars then ... end`), now guarded.
-    Titlebars still don't actually work until `hyprpm enable hyprbars`
-    succeeds on that machine — check `/tmp/hyprpm-add.log` for why it
-    failed (headers version mismatch is the top suspect).
-  - **True drag-to-edge Snap Assist has no Hyprland equivalent, plugin or
-    otherwise** — this would require writing compositor-level drag-event
-    tooling from scratch. Don't imply it's achievable with a quick config
-    tweak if asked again; it isn't.
+- **Floating/titlebar/Windows-snap experiment tried and reverted**
+  (2026-07-25 to 2026-07-26) — see the Compositor entry above for the
+  full decision. `ALT+Tab` opening Noctalia's visual window-switcher
+  (instead of upstream's bare no-overlay cycle, swapped with `SUPER+Tab`)
+  was kept since it's a genuine improvement independent of floating vs
+  tiling. Everything else from that experiment (blanket float rule,
+  `hyprbars`, `SUPER+ALT+Arrow` snap keybinds) was removed. Worth knowing
+  if it ever comes up again: Hyprland has no built-in or plugin
+  equivalent of Windows' actual Snap Assist (drag-to-edge auto-resize) —
+  only keybind-triggered positioning or magnetic drag-alignment
+  (`general.snap`, still enabled, applies to the windows that still float
+  per the exception rules) — that would require writing compositor-level
+  drag-event tooling from scratch.
 - Screenshots/screen recording: **Spectacle** (KDE, works fine outside
   Plasma over the existing xdg-desktop-portal-hyprland + PipeWire stack).
   Chosen explicitly over hyprshot/grimblast because recording was wanted
@@ -249,9 +249,10 @@ require VBS to launch at all now.
   everything else (SUPER+L lock, media keys, workspace binds, etc.) is
   upstream default, not something this repo invented
 - `hypr-config/windowrules.lua` — full copy of CachyOS upstream
-  `config/windowrules.lua` with one addition: blanket float-by-default
-  rule at the top (upstream default is tiling-by-default with per-app
-  float exceptions)
+  `config/windowrules.lua` with one small addition: `general.snap`
+  enabled for magnetic drag-alignment on the windows that still float
+  per upstream's exception rules (gaming/dialogs/PiP). Tiling-by-default
+  itself is untouched upstream behavior, not something this repo sets.
 - `hypr-config/variables.lua` — full copy of upstream `config/variables.lua`.
   `TERMINAL` was briefly changed to ghostty then reverted back to
   upstream's `kitty` (2026-07-25, person's explicit choice) — `kitty` is

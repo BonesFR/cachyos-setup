@@ -1,43 +1,18 @@
 -- Based on CachyOS/cachyos-hypr-noctalia's default etc/skel/.config/hypr/config/windowrules.lua.
--- One addition at the very top: a blanket float-by-default rule. Upstream CachyOS
--- ships tiling-by-default with per-app float exceptions (gaming, dialogs, etc.) —
--- this person specifically wants Windows/KDE-style floating as the default instead,
--- with tiling as the opt-in exception (SUPER+ALT+Space toggles it, see binds.lua).
--- Placed FIRST so the more specific rules below (gaming fullscreen/tiling, PiP, etc.)
--- still win where CachyOS intended, since later matching rules override earlier ones.
+-- Back to upstream's tiling-by-default with per-app float exceptions (gaming,
+-- dialogs, PiP, etc.) — the blanket floating-by-default rule and the hyprbars
+-- titlebar plugin (2026-07-25 attempt at a Windows/KDE feel) were both removed
+-- 2026-07-26: the person decided that experience wasn't achievable this way
+-- regardless of effort, and chose to lean into Hyprland's native tiling + rice
+-- customization instead of fighting it. Don't re-add either without the person
+-- raising it again.
 --
 -- Window rules wiki https://wiki.hypr.land/Configuring/Basics/Window-Rules/
 
--- Magnetic edge/window snapping while dragging floating windows (added). This is
--- NOT Windows' Aero Snap (drag-to-edge auto-resize-to-half) — Hyprland has no
--- built-in equivalent to that, it would need a plugin or dedicated keybinds. This
--- is the smaller, honest version: windows snap into alignment when dragged near
--- a screen edge or another window's edge.
+-- Magnetic edge/window snapping while dragging (added, kept) — only matters for
+-- the windows that still float per the exception rules below (dialogs, PiP,
+-- gaming popups), since tiled windows aren't dragged.
 hl.config({ general = { snap = { enabled = true } } })
-
--- hyprbars (official plugin, github.com/hyprwm/hyprland-plugins): real
--- server-side titlebars — draggable directly (no SUPER needed), with a close
--- button. Lives here rather than a new config/hyprbars.lua + hyprland.lua edit
--- since it's one small block and avoids forking hyprland.lua's require() list
--- just for this. Installed/enabled via `hyprpm` in setup.sh.
--- MUST be guarded like this: if the plugin isn't loaded, `hl.plugin.hyprbars` is
--- nil, and calling .add_button on it is a hard Lua error that aborts the rest of
--- THIS FILE's execution — silently breaking floating-by-default, snap, and every
--- window rule below. Learned that the hard way once already (see the identical
--- class of bug with an undefined TERMINAL breaking binds.lua) — never assume an
--- optional/plugin-provided API surface exists without checking first.
-if hl.plugin and hl.plugin.hyprbars then
-    hl.config({ plugin = { hyprbars = {
-        bar_height = 28,
-        on_double_click = "hyprctl dispatch fullscreen 1",
-    } } })
-    hl.plugin.hyprbars.add_button({ bg_color = "rgba(0,0,0,0)", fg_color = "rgb(cba6f7)", size = 20, icon = "X", action = "hyprctl dispatch killactive" })
-else
-    print("hyprbars plugin not loaded, skipping titlebar config — run 'hyprpm enable hyprbars' (see NOTES.md)")
-end
-
--- Floating by default (added — see note above)
-hl.window_rule({ match = { class = ".*" }, float = true })
 
 -- Generic floating position
 hl.window_rule({ match = { float = true }, center = true, persistent_size = true })
